@@ -58,27 +58,18 @@ function ScanHistory({history,onSelect}){
     <div style={{marginTop:24}}>
       <div style={{fontSize:11,color:C.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:10,fontWeight:600}}>Recent Scans</div>
       {history.slice(0,5).map((h,i)=>{
-        const color=getRiskColor(h.score);
+        const color=getRiskColor(h.risk_score||h.score||0);
         return(
           <div key={i} onClick={()=>onSelect(h)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,cursor:"pointer",marginBottom:8}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:color,boxShadow:`0 0 8px ${color}`,flexShrink:0}}/>
             <div style={{flex:1,fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.url}</div>
-            <div style={{fontSize:12,fontWeight:700,color,flexShrink:0}}>{h.score}</div>
+            <div style={{fontSize:12,fontWeight:700,color,flexShrink:0}}>{h.risk_score||h.score||0}</div>
           </div>
         );
       })}
     </div>
   );
 }
-
-const CHECKS = [
-  {label:"HTTPS Not Used",status:"danger",detail:"Site uses HTTP — data is not encrypted. Legitimate sites use HTTPS."},
-  {label:"Suspicious Domain",status:"danger",detail:"Domain mimics a popular brand but is not the official domain."},
-  {label:"Fake Login Form Detected",status:"danger",detail:"Page contains a login form submitting to an unknown third-party server."},
-  {label:"Domain Age: 3 days",status:"warn",detail:"Newly registered domains are commonly used for phishing attacks."},
-  {label:"No SSL Certificate",status:"danger",detail:"No valid SSL certificate found for this domain."},
-  {label:"Redirects Detected",status:"warn",detail:"Page redirects through 2 intermediate URLs before landing."},
-];
 
 export default function App(){
   const [url,setUrl]=useState("");
@@ -89,28 +80,41 @@ export default function App(){
   const [activeTab,setActiveTab]=useState("overview");
   const inputRef=useRef(null);
 
-  const handleScan=()=>{
-    if(!url.trim())return;
-    setScanning(true);setResult(null);setProgress(0);setActiveTab("overview");
-    let p=0;
-    const iv=setInterval(()=>{
-      p+=Math.random()*18;
-      if(p>=100){
-        p=100;clearInterval(iv);
-        setTimeout(()=>{
-          setScanning(false);
-          const score=Math.floor(Math.random()*60)+30;
-          const r={url:url.trim(),score,checks:CHECKS,summary:"AI analysis complete. This URL shows multiple indicators commonly associated with phishing and credential harvesting attacks.",vulnerabilities:["Credential harvesting form","Domain spoofing","No encryption","Suspicious redirect chain"]};
-          setResult(r);
-          setHistory(prev=>[r,...prev.filter(h=>h.url!==url.trim())]);
-        },400);
-      }
-      setProgress(Math.min(p,100));
-    },180);
+  const handleScan = async () => {
+    if (!url.trim()) return;
+    setScanning(true); setResult(null); setProgress(0); setActiveTab("overview");
+
+    let p = 0;
+    const iv = setInterval(() => {
+      p += Math.random() * 12;
+      if (p >= 90) p = 90;
+      setProgress(p);
+    }, 200);
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() })
+      });
+      const data = await response.json();
+      clearInterval(iv);
+      setProgress(100);
+      setTimeout(() => {
+        setScanning(false);
+        setResult(data);
+        setHistory(prev => [data, ...prev.filter(h => h.url !== url.trim())]);
+      }, 400);
+    } catch (error) {
+      clearInterval(iv);
+      setScanning(false);
+      alert("Backend not running! Make sure python app.py is running in Shell 1");
+    }
   };
 
-  const riskColor=result?getRiskColor(result.score):C.blue;
-  const riskInfo=result?getRiskLabel(result.score):null;
+  const score = result ? (result.risk_score || result.score || 0) : 0;
+  const riskColor = result ? getRiskColor(score) : C.blue;
+  const riskInfo = result ? getRiskLabel(score) : null;
 
   return(
     <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'DM Sans',system-ui,sans-serif",color:C.text,maxWidth:720,margin:"0 auto",paddingBottom:80,position:"relative"}}>
@@ -142,15 +146,19 @@ export default function App(){
             <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:20,fontWeight:900,background:"linear-gradient(135deg,#fff,#ff3b57,#0ea5ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"1px"}}>PhishGuard AI</div>
             <div style={{fontSize:10,color:C.muted,letterSpacing:"1.5px",textTransform:"uppercase"}}>Web Phishing & Vulnerability Detector</div>
           </div>
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:"rgba(0,232,122,0.08)",border:"1px solid rgba(0,232,122,0.2)",borderRadius:20}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:C.green,boxShadow:`0 0 8px ${C.green}`,animation:"scanPulse 2s infinite"}}/>
-            <span style={{fontSize:11,color:C.green,fontWeight:600}}>AI ONLINE</span>
+          <div style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:"rgba(0,232,122,0.08)",border:"1px solid rgba(0,232,122,0.2)",borderRadius:20}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:C.green,boxShadow:`0 0 8px ${C.green}`,animation:"scanPulse 2s infinite"}}/>
+              <span style={{fontSize:11,color:C.green,fontWeight:600}}>AI ONLINE</span>
+            </div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",fontStyle:"italic"}}>
+              crafted by <span style={{background:"linear-gradient(90deg,#ff3b57,#0ea5ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:700,fontStyle:"normal"}}>osho</span>
+            </div>
           </div>
         </div>
 
-        {/* Search */}
         <div style={{display:"flex",gap:10}}>
-          <div style={{flex:1,display:"flex",alignItems:"center",gap:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${scanning?C.blue:result?riskColor:"rgba(255,255,255,0.1)"}`,borderRadius:16,padding:"13px 18px",transition:"border-color 0.3s",boxShadow:scanning?`0 0 20px ${C.blue}22`:result?`0 0 20px ${riskColor}22`:"none"}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${scanning?C.blue:result?riskColor:"rgba(255,255,255,0.1)"}`,borderRadius:16,padding:"13px 18px",transition:"border-color 0.3s"}}>
             <span style={{fontSize:16}}>🔗</span>
             <input ref={inputRef} value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleScan()}
               placeholder="Enter URL to scan (e.g. https://example.com)"
@@ -186,20 +194,18 @@ export default function App(){
       <div style={{padding:"24px 24px 0",position:"relative",zIndex:1}}>
         {result&&(
           <div style={{animation:"fadeUp 0.5s cubic-bezier(.34,1.2,.64,1)"}}>
-            {/* Risk Banner */}
-            <div style={{background:`linear-gradient(135deg,${riskColor}18,${riskColor}08)`,border:`1px solid ${riskColor}33`,borderRadius:20,padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",gap:20,flexWrap:"wrap",boxShadow:`0 0 40px ${riskColor}11`}}>
-              <RiskGauge score={result.score} color={riskColor}/>
+            <div style={{background:`linear-gradient(135deg,${riskColor}18,${riskColor}08)`,border:`1px solid ${riskColor}33`,borderRadius:20,padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+              <RiskGauge score={score} color={riskColor}/>
               <div style={{flex:1,minWidth:200}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                   <span style={{fontSize:22}}>{riskInfo.emoji}</span>
-                  <span style={{fontFamily:"'Orbitron',sans-serif",fontSize:16,fontWeight:800,color:riskColor,textShadow:`0 0 20px ${riskColor}66`,letterSpacing:"1px"}}>{riskInfo.label}</span>
+                  <span style={{fontFamily:"'Orbitron',sans-serif",fontSize:16,fontWeight:800,color:riskColor,letterSpacing:"1px"}}>{riskInfo.label}</span>
                 </div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>{result.summary}</div>
                 <div style={{fontSize:11,color:C.muted,wordBreak:"break-all"}}>🔗 {result.url}</div>
               </div>
             </div>
 
-            {/* Tabs */}
             <div style={{display:"flex",gap:4,marginBottom:16,background:"rgba(255,255,255,0.03)",borderRadius:14,padding:4}}>
               {["overview","vulnerabilities","details"].map(tab=>(
                 <button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:activeTab===tab?"rgba(255,255,255,0.08)":"none",color:activeTab===tab?C.text:C.muted,fontWeight:activeTab===tab?700:500,fontSize:13,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
@@ -209,16 +215,16 @@ export default function App(){
             </div>
 
             {activeTab==="overview"&&(
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px",backdropFilter:"blur(20px)"}}>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px"}}>
                 <div style={{fontSize:11,color:C.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Security Checks</div>
-                {result.checks.map((c,i)=><CheckItem key={i} {...c}/>)}
+                {(result.checks||[]).map((c,i)=><CheckItem key={i} {...c}/>)}
               </div>
             )}
 
             {activeTab==="vulnerabilities"&&(
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px",backdropFilter:"blur(20px)"}}>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px"}}>
                 <div style={{fontSize:11,color:C.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Detected Threats</div>
-                {result.vulnerabilities.map((v,i)=>(
+                {(result.vulnerabilities||[]).map((v,i)=>(
                   <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"rgba(255,59,87,0.06)",border:"1px solid rgba(255,59,87,0.15)",borderRadius:12,marginBottom:8}}>
                     <span style={{fontSize:16}}>⚡</span>
                     <span style={{fontSize:13,color:C.text,fontWeight:500}}>{v}</span>
@@ -228,17 +234,18 @@ export default function App(){
             )}
 
             {activeTab==="details"&&(
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px",backdropFilter:"blur(20px)"}}>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px"}}>
                 <div style={{fontSize:11,color:C.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Technical Details</div>
                 {[
                   {label:"URL Scanned",value:result.url},
-                  {label:"Risk Score",value:`${result.score}/100`},
+                  {label:"Risk Score",value:`${score}/100`},
                   {label:"Risk Level",value:riskInfo.label},
-                  {label:"Threats Found",value:result.vulnerabilities.length},
-                  {label:"Checks Performed",value:result.checks.length},
+                  {label:"HTTPS",value:result.has_https?"Yes ✓":"No ✕"},
+                  {label:"Domain Age",value:result.domain_age>0?`${result.domain_age} days`:"Unknown"},
+                  {label:"Threats Found",value:(result.vulnerabilities||[]).length},
                   {label:"Scan Time",value:new Date().toLocaleTimeString()},
                 ].map((row,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<5?`1px solid ${C.border}`:"none"}}>
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<6?`1px solid ${C.border}`:"none"}}>
                     <span style={{fontSize:13,color:C.muted}}>{row.label}</span>
                     <span style={{fontSize:13,color:C.text,fontWeight:600,maxWidth:"60%",textAlign:"right",wordBreak:"break-all"}}>{row.value}</span>
                   </div>
@@ -257,6 +264,9 @@ export default function App(){
               {["🔐 SSL Check","🌐 Domain Analysis","🤖 AI Detection","📊 Risk Scoring","🚨 Threat Detection","📋 PDF Reports"].map(f=>(
                 <div key={f} style={{padding:"8px 16px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,fontSize:12,color:C.muted}}>{f}</div>
               ))}
+            </div>
+            <div style={{marginTop:48,fontSize:11,color:"rgba(255,255,255,0.1)"}}>
+              designed & built by <span style={{background:"linear-gradient(90deg,#ff3b57,#0ea5ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:700}}>osho</span>
             </div>
           </div>
         )}
