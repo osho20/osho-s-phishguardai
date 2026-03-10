@@ -111,7 +111,24 @@ export default function App(){
       alert("Backend not running! Make sure python app.py is running in Shell 1");
     }
   };
-
+ const handleDownloadReport = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result)
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "phishguard_report.pdf";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Could not generate report. Make sure backend is running!");
+    }
+  };
   const score = result ? (result.risk_score || result.score || 0) : 0;
   const riskColor = result ? getRiskColor(score) : C.blue;
   const riskInfo = result ? getRiskLabel(score) : null;
@@ -203,6 +220,9 @@ export default function App(){
                 </div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>{result.summary}</div>
                 <div style={{fontSize:11,color:C.muted,wordBreak:"break-all"}}>🔗 {result.url}</div>
+                <button onClick={handleDownloadReport} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#ff3b57,#0ea5ff)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 0 20px rgba(255,59,87,0.3)"}}>
+  📄 Download PDF Report
+</button>
               </div>
             </div>
 
