@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 
+const BACKEND = "https://phishguard-backend-xnb1.onrender.com";
+
 const C = {
   bg: "#060810", card: "rgba(10,13,25,0.85)", border: "rgba(255,255,255,0.06)",
   red: "#ff3b57", orange: "#ff8c00", green: "#00e87a", blue: "#0ea5ff",
@@ -75,7 +77,12 @@ export default function App(){
   const [url,setUrl]=useState("");
   const [scanning,setScanning]=useState(false);
   const [result,setResult]=useState(null);
-  const [history,setHistory]=useState([]);
+  const [history,setHistory]=useState(()=>{
+    try{
+      const saved = localStorage.getItem("phishguard_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [progress,setProgress]=useState(0);
   const [activeTab,setActiveTab]=useState("overview");
   const inputRef=useRef(null);
@@ -92,7 +99,7 @@ export default function App(){
     }, 200);
 
     try {
-      const response = await fetch("https://phishguard-backend-xnb1.onrender.com/scan", {
+      const response = await fetch(`${BACKEND}/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() })
@@ -103,32 +110,37 @@ export default function App(){
       setTimeout(() => {
         setScanning(false);
         setResult(data);
-        setHistory(prev => [data, ...prev.filter(h => h.url !== url.trim())]);
+      setHistory(prev => {
+        const updated = [data, ...prev.filter(h => h.url !== url.trim())].slice(0, 10);
+        localStorage.setItem("phishguard_history", JSON.stringify(updated));
+        return updated;
+      });
       }, 400);
     } catch (error) {
       clearInterval(iv);
       setScanning(false);
-      alert("Backend not running! Make sure python app.py is running in Shell 1");
+      alert("Backend not reachable! Try again in 30 seconds.");
     }
   };
+
  const handleDownloadReport = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/report", {
+      const response = await fetch(`${BACKEND}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(result)
       });
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "phishguard_report.pdf";
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const blobUrl = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+      // Works on both mobile and desktop
+      window.open(blobUrl, "_blank");
     } catch (error) {
-      alert("Could not generate report. Make sure backend is running!");
+      alert("Could not generate report. Please try again!");
     }
   };
+
   const score = result ? (result.risk_score || result.score || 0) : 0;
   const riskColor = result ? getRiskColor(score) : C.blue;
   const riskInfo = result ? getRiskLabel(score) : null;
@@ -153,7 +165,6 @@ export default function App(){
 
       <Orbs/>
 
-      {/* HEADER */}
       <div style={{position:"relative",zIndex:10,padding:"40px 24px 28px",borderBottom:`1px solid ${C.border}`,background:"linear-gradient(180deg,rgba(6,8,16,0.98) 0%,rgba(6,8,16,0.85) 100%)",backdropFilter:"blur(20px)"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#ff3b57,#0ea5ff,#00e87a,transparent)",opacity:0.8}}/>
 
@@ -207,7 +218,6 @@ export default function App(){
         )}
       </div>
 
-      {/* CONTENT */}
       <div style={{padding:"24px 24px 0",position:"relative",zIndex:1}}>
         {result&&(
           <div style={{animation:"fadeUp 0.5s cubic-bezier(.34,1.2,.64,1)"}}>
@@ -221,8 +231,8 @@ export default function App(){
                 <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>{result.summary}</div>
                 <div style={{fontSize:11,color:C.muted,wordBreak:"break-all"}}>🔗 {result.url}</div>
                 <button onClick={handleDownloadReport} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#ff3b57,#0ea5ff)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 0 20px rgba(255,59,87,0.3)"}}>
-  📄 Download PDF Report
-</button>
+                  📄 Download PDF Report
+                </button>
               </div>
             </div>
 
