@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/osho-s-phishguardai/static/css/main.e6c13ad2.css",
-    "main.js": "/osho-s-phishguardai/static/js/main.a9a968a7.js",
+    "main.js": "/osho-s-phishguardai/static/js/main.e6c8c207.js",
     "static/js/453.f6d64966.chunk.js": "/osho-s-phishguardai/static/js/453.f6d64966.chunk.js",
     "index.html": "/osho-s-phishguardai/index.html",
     "main.e6c13ad2.css.map": "/osho-s-phishguardai/static/css/main.e6c13ad2.css.map",
-    "main.a9a968a7.js.map": "/osho-s-phishguardai/static/js/main.a9a968a7.js.map",
+    "main.e6c8c207.js.map": "/osho-s-phishguardai/static/js/main.e6c8c207.js.map",
     "453.f6d64966.chunk.js.map": "/osho-s-phishguardai/static/js/453.f6d64966.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.a9a968a7.js"
+    "static/js/main.e6c8c207.js"
   ]
 }
