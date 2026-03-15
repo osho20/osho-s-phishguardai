@@ -53,7 +53,33 @@ function CheckItem({label,status,detail}){
     </div>
   );
 }
-
+function StatsBar({history}){
+  if(!history.length) return null;
+  const total = history.length;
+  const high = history.filter(h=>(h.risk_score||0)>=75).length;
+  const suspicious = history.filter(h=>(h.risk_score||0)>=40&&(h.risk_score||0)<75).length;
+  const safe = history.filter(h=>(h.risk_score||0)<40).length;
+  const avgScore = Math.round(history.reduce((a,h)=>a+(h.risk_score||0),0)/total);
+  return(
+    <div style={{margin:"24px 0 0",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:20,padding:"16px 20px"}}>
+      <div style={{fontSize:11,color:"#4a4f6e",letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Scan Statistics</div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        {[
+          {val:total,label:"Total Scans",color:"#0ea5ff"},
+          {val:high,label:"High Risk",color:"#ff3b57"},
+          {val:suspicious,label:"Suspicious",color:"#ff8c00"},
+          {val:safe,label:"Safe",color:"#00e87a"},
+          {val:avgScore,label:"Avg Score",color:"#bf5fff"},
+        ].map(s=>(
+          <div key={s.label} style={{flex:1,minWidth:80,textAlign:"center",padding:"10px 8px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:14}}>
+            <div style={{fontSize:22,fontWeight:800,color:s.color,textShadow:`0 0 16px ${s.color}55`}}>{s.val}</div>
+            <div style={{fontSize:10,color:"#4a4f6e",marginTop:4,letterSpacing:"0.5px"}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function ScanHistory({history,onSelect}){
   if(!history.length)return null;
   return(
@@ -158,6 +184,8 @@ export default function App(){
         @keyframes o1{from{transform:translate(0,0)}to{transform:translate(-30px,40px) scale(0.9)}}
         @keyframes o2{from{transform:translate(0,0)}to{transform:translate(20px,-30px) scale(1.05)}}
         @keyframes scanPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+        @keyframes headerShine{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-6px)}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         ::-webkit-scrollbar{width:0;}
@@ -169,9 +197,9 @@ export default function App(){
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#ff3b57,#0ea5ff,#00e87a,transparent)",opacity:0.8}}/>
 
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
-          <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#ff3b57,#0ea5ff)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 0 24px rgba(255,59,87,0.4)"}}>🛡️</div>
+          <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#ff3b57,#0ea5ff)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 0 24px rgba(255,59,87,0.4)",animation:"float 3s ease-in-out infinite"}}>🛡️</div>
           <div>
-            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:20,fontWeight:900,background:"linear-gradient(135deg,#fff,#ff3b57,#0ea5ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"1px"}}>PhishGuard AI</div>
+          <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:20,fontWeight:900,background:"linear-gradient(270deg,#fff,#ff3b57,#0ea5ff,#fff)",backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"1px",animation:"headerShine 4s linear infinite"}}>PhishGuard AI</div>
             <div style={{fontSize:10,color:C.muted,letterSpacing:"1.5px",textTransform:"uppercase"}}>Web Phishing & Vulnerability Detector</div>
           </div>
           <div style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
@@ -301,7 +329,8 @@ export default function App(){
           </div>
         )}
 
-        <ScanHistory history={history} onSelect={r=>{setResult(r);setUrl(r.url);setActiveTab("overview");}}/>
+      <StatsBar history={history}/>
+<ScanHistory history={history} onSelect={r=>{setResult(r);setUrl(r.url);setActiveTab("overview");}}/>
       </div>
     </div>
   );
