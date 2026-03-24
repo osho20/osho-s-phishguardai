@@ -237,6 +237,9 @@ const LOG_STEPS = [
 /* ── MAIN APP ── */
 export default function App(){
   const [url,setUrl]=useState("");
+  const [compareUrl,setCompareUrl]=useState("");
+const [compareResult,setCompareResult]=useState(null);
+const [compareMode,setCompareMode]=useState(false);
   const [scanning,setScanning]=useState(false);
   const [result,setResult]=useState(null);
   const [logs,setLogs]=useState([]);
@@ -248,7 +251,22 @@ export default function App(){
   });
   const inputRef=useRef(null);
   const logRef=useRef(0);
-
+const handleCompare = async () => {
+    if (!compareUrl.trim()) return;
+    setScanning(true);
+    try {
+      const response = await fetch(`${BACKEND}/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: compareUrl.trim() })
+      });
+      const data = await response.json();
+      setCompareResult(data);
+    } catch (error) {
+      alert("Could not scan compare URL!");
+    }
+    setScanning(false);
+  };
   const handleScan=useCallback(async()=>{
     if(!url.trim()||scanning) return;
     setScanning(true); setResult(null); setProgress(0);
@@ -424,6 +442,22 @@ export default function App(){
               </span>
             ):"[ SCAN ]"}
           </button>
+          {compareMode&&(
+  <div style={{display:"flex",gap:10,marginTop:10}}>
+    <div style={{flex:1,display:"flex",alignItems:"center",gap:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(0,240,255,0.3)",borderRadius:16,padding:"13px 18px"}}>
+      <span style={{fontSize:16}}>🔗</span>
+      <input value={compareUrl} onChange={e=>setCompareUrl(e.target.value)}
+        placeholder="Enter second URL to compare"
+        style={{flex:1,background:"none",border:"none",color:T.text,fontSize:14,fontFamily:"inherit"}}/>
+    </div>
+    <button onClick={handleCompare} disabled={scanning||!compareUrl.trim()} style={{padding:"13px 22px",borderRadius:16,border:"none",background:"linear-gradient(135deg,#7c3aed,#00f0ff)",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+      Compare
+    </button>
+  </div>
+)}
+<button onClick={()=>setCompareMode(p=>!p)} style={{marginTop:8,padding:"6px 16px",borderRadius:20,border:"1px solid rgba(255,255,255,0.1)",background:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+  {compareMode?"✕ Cancel Compare":"⚡ Compare Two URLs"}
+</button>
         </div>
 
         {/* Progress */}
@@ -467,6 +501,7 @@ export default function App(){
                 <div style={{flex:1,minWidth:200}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                     <span style={{fontSize:24}}>{rl.e}</span>
+                    <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:score>=85?"#ff000033":score>=65?"#ff3b5733":score>=40?"#ff8c0033":"#00ff8733",color:score>=85?"#ff0000":score>=65?"#ff3b57":score>=40?"#ff8c00":"#00ff87",border:`1px solid ${score>=85?"#ff0000":score>=65?"#ff3b57":score>=40?"#ff8c00":"#00ff87"}`,marginLeft:8}}>{result.severity||"LOW"}</span>
                     <span style={{fontFamily:"'Share Tech Mono',monospace",
                       fontSize:20,fontWeight:400,color:rc,
                       textShadow:`0 0 30px ${rc}`,letterSpacing:"2px"}}>{rl.t}</span>
@@ -558,12 +593,12 @@ export default function App(){
               )}
 
            {activeTab==="intel"&&(
-  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"18px 20px"}}>
-    <div style={{fontSize:11,color:C.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Technical Details</div>
+  <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:18,padding:"18px 20px"}}>
+    <div style={{fontSize:11,color:T.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>Technical Details</div>
     {[
       {label:"URL Scanned",value:result.url},
       {label:"Risk Score",value:`${score}/100`},
-      {label:"Risk Level",value:riskInfo.label},
+    {label:"Risk Level",value:riskLabel(score).t||"Unknown"},
       {label:"HTTPS",value:result.has_https?"Yes ✓":"No ✕"},
       {label:"Domain Age",value:result.domain_age>0?`${result.domain_age} days`:"Unknown"},
       {label:"Threats Found",value:(result.vulnerabilities||[]).length},
@@ -575,9 +610,9 @@ export default function App(){
       {label:"DNS Records",value:Object.keys(result.dns_records||{}).join(", ")||"None"},
       {label:"Scan Time",value:new Date().toLocaleTimeString()},
     ].map((row,i)=>(
-      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<12?`1px solid ${C.border}`:"none"}}>
-        <span style={{fontSize:13,color:C.muted}}>{row.label}</span>
-        <span style={{fontSize:13,color:C.text,fontWeight:600,maxWidth:"60%",textAlign:"right",wordBreak:"break-all"}}>{row.value}</span>
+      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<12?`1px solid ${T.border}`:"none"}}>
+        <span style={{fontSize:13,color:T.muted}}>{row.label}</span>
+        <span style={{fontSize:13,color:T.text,fontWeight:600,maxWidth:"60%",textAlign:"right",wordBreak:"break-all"}}>{row.value}</span>
       </div>
     ))}
   </div>
@@ -615,7 +650,30 @@ export default function App(){
             </div>
           </div>
         )}
-
+{compareResult&&result&&(
+  <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:18,padding:"18px 20px",marginTop:20}}>
+    <div style={{fontSize:11,color:T.muted,letterSpacing:"2px",textTransform:"uppercase",marginBottom:14,fontWeight:600}}>URL Comparison</div>
+    <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+      {[
+        {url:result.url,score:result.risk_score||0,severity:result.severity||"LOW"},
+        {url:compareResult.url,score:compareResult.risk_score||0,severity:compareResult.severity||"LOW"},
+      ].map((r,i)=>(
+        <div key={i} style={{flex:1,minWidth:200,padding:"14px",background:"rgba(255,255,255,0.02)",border:`1px solid ${riskColor(r.score)}44`,borderRadius:14,textAlign:"center"}}>
+          <div style={{fontSize:11,color:T.muted,marginBottom:8,wordBreak:"break-all"}}>{r.url}</div>
+          <div style={{fontSize:32,fontWeight:800,color:riskColor(r.score)}}>{r.score}</div>
+          <div style={{fontSize:11,color:riskColor(r.score),marginTop:4}}>{r.severity}</div>
+        </div>
+      ))}
+    </div>
+    <div style={{marginTop:12,fontSize:13,color:T.muted,textAlign:"center"}}>
+      {(result.risk_score||0)>(compareResult.risk_score||0)?
+        `⚠ ${result.url} is more dangerous`:
+        (compareResult.risk_score||0)>(result.risk_score||0)?
+        `⚠ ${compareResult.url} is more dangerous`:
+        "✓ Both URLs have equal risk levels"}
+    </div>
+  </div>
+)}
         <StatsBar history={history}/>
 
         {history.length>0&&(
