@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-
+import emailjs from '@emailjs/browser';
 const BACKEND = "https://phishguard-backend-xnb1.onrender.com";
 
 /* ── THEME ── */
@@ -251,6 +251,30 @@ const [compareMode,setCompareMode]=useState(false);
   });
   const inputRef=useRef(null);
   const logRef=useRef(0);
+  const handleEmailReport = async () => {
+    const email = prompt("Enter your email address:");
+    if (!email) return;
+    try {
+      await emailjs.send(
+        "service_qpflyvh",
+        "template_h7a0z9c",
+        {
+          url: result.url,
+          score: result.risk_score || 0,
+          level: result.risk_level || "",
+          severity: result.severity || "LOW",
+          summary: result.summary || "",
+          threats: (result.vulnerabilities || []).join(", "),
+          time: new Date().toLocaleString(),
+          to_email: email,
+        },
+        "shj70a9_m3esIUi97"
+      );
+      alert("✅ Report sent to " + email);
+    } catch (error) {
+      alert("❌ Failed to send email. Try again!");
+    }
+  };
 const handleCompare = async () => {
     if (!compareUrl.trim()) return;
     setScanning(true);
@@ -522,6 +546,9 @@ const handleCompare = async () => {
                       boxShadow:`0 0 16px ${T.cyan}22`,transition:"all 0.2s"}}>
                       ↓ EXPORT REPORT
                     </button>
+                    <button onClick={handleEmailReport} style={{marginTop:8,marginLeft:8,padding:"10px 20px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#7c3aed,#00f0ff)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+  📧 Email Report
+</button>
                     <div style={{display:"flex",gap:8}}>
                       {[
                         {label:"HTTPS",val:result.has_https?"ON":"OFF",c:result.has_https?T.green:T.red},
