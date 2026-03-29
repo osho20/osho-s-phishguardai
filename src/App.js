@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import emailjs from '@emailjs/browser';
+import { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from './firebase';
 const BACKEND = "https://phishguard-backend-xnb1.onrender.com";
 
 /* ── THEME ── */
@@ -240,6 +241,12 @@ export default function App(){
   const [compareUrl,setCompareUrl]=useState("");
 const [compareResult,setCompareResult]=useState(null);
 const [compareMode,setCompareMode]=useState(false);
+const [user,setUser]=useState(null);
+const [showAuth,setShowAuth]=useState(false);
+const [authMode,setAuthMode]=useState("login");
+const [authEmail,setAuthEmail]=useState("");
+const [authPassword,setAuthPassword]=useState("");
+const [authError,setAuthError]=useState("");
   const [scanning,setScanning]=useState(false);
   const [result,setResult]=useState(null);
   const [logs,setLogs]=useState([]);
@@ -275,7 +282,31 @@ const [compareMode,setCompareMode]=useState(false);
       alert("❌ Failed to send email. Try again!");
     }
   };
-const handleCompare = async () => {
+  useEffect(()=>{
+    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    return ()=>unsub();
+  },[]);
+
+  const handleLogin = async () => {
+    setAuthError("");
+    try {
+      await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      setShowAuth(false);
+    } catch(e) {
+      setAuthError(e.message);
+    }
+  };
+
+  const handleSignup = async () => {
+    setAuthError("");
+    try {
+      await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      setShowAuth(false); } catch(e) {
+      setAuthError(e.message);
+    }
+  };
+    }
+  const handleCompare = async () => {
     if (!compareUrl.trim()) return;
     setScanning(true);
     try {
@@ -369,6 +400,30 @@ const handleCompare = async () => {
       `}</style>
 
       <MatrixRain/>
+      
+{showAuth&&(
+  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:24,backdropFilter:"blur(8px)"}}>
+    <div style={{background:"rgba(10,10,24,0.98)",border:"1px solid rgba(0,240,255,0.3)",borderRadius:28,padding:"32px 24px",width:"100%",maxWidth:360,boxShadow:"0 0 60px rgba(0,240,255,0.1)"}}>
+      <div style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:4}}>{authMode==="login"?"Welcome Back":"Create Account"}</div>
+      <div style={{fontSize:12,color:T.muted,marginBottom:24}}>PhishGuard AI — {authMode==="login"?"Sign in to continue":"Join to save your scans"}</div>
+      <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="Email address"
+        style={{width:"100%",padding:"12px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",color:T.text,fontSize:14,marginBottom:10,fontFamily:"inherit",outline:"none"}}/>
+      <input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder="Password"
+        style={{width:"100%",padding:"12px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",color:T.text,fontSize:14,marginBottom:10,fontFamily:"inherit",outline:"none"}}/>
+      {authError&&<div style={{fontSize:12,color:T.red,marginBottom:10}}>{authError}</div>}
+      <button onClick={authMode==="login"?handleLogin:handleSignup} style={{width:"100%",padding:14,borderRadius:14,border:"none",background:"linear-gradient(135deg,#7c3aed,#00f0ff)",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",marginBottom:10}}>
+        {authMode==="login"?"Sign In":"Sign Up"}
+      </button>
+      <div style={{textAlign:"center",fontSize:12,color:T.muted}}>
+        {authMode==="login"?"Don't have an account? ":"Already have an account? "}
+        <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#00f0ff",cursor:"pointer",fontWeight:600}}>
+          {authMode==="login"?"Sign Up":"Sign In"}
+        </span>
+      </div>
+      <button onClick={()=>setShowAuth(false)} style={{width:"100%",marginTop:10,padding:10,borderRadius:12,border:"1px solid rgba(255,255,255,0.1)",background:"none",color:T.muted,cursor:"pointer",fontSize:13}}>Cancel</button>
+    </div>
+  </div>
+)}
 
       {/* ── HEADER ── */}
       <div style={{position:"sticky",top:0,zIndex:100,
@@ -670,6 +725,9 @@ const handleCompare = async () => {
                   letterSpacing:"1.5px"}}>[ {f} ]</div>
               ))}
             </div>
+            <button onClick={user?handleLogout:()=>setShowAuth(true)} style={{padding:"6px 14px",borderRadius:20,border:"1px solid rgba(0,240,255,0.3)",background:"none",color:"#00f0ff",fontSize:11,cursor:"pointer",fontWeight:600,fontFamily:"inherit",marginBottom:8}}>
+  {user?`👤 ${user.email.split("@")[0]} | Logout`:"🔐 Login"}
+</button>
             <div style={{marginTop:40,fontSize:10,
               color:"rgba(255,255,255,0.08)",
               fontFamily:"'Share Tech Mono',monospace",letterSpacing:"2px"}}>
@@ -718,4 +776,3 @@ const handleCompare = async () => {
       </div>
     </div>
   );
-}
