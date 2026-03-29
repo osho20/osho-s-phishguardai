@@ -1,6 +1,6 @@
 # 🛡️ PhishGuard AI
 
-An AI-powered web phishing and vulnerability detector built with React and Python Flask.
+An AI-powered web phishing and vulnerability detector.
 
 **Live Demo:** https://osho20.github.io/osho-s-phishguardai
 
@@ -8,15 +8,35 @@ An AI-powered web phishing and vulnerability detector built with React and Pytho
 
 ## 🚀 Features
 
-- 🤖 **AI Analysis** — Uses Google Gemini AI to detect phishing patterns
-- 🔐 **SSL/HTTPS Check** — Detects unencrypted connections
-- 🌐 **Domain Age Check** — Flags newly registered suspicious domains
-- 🚨 **XSS Detection** — Identifies cross-site scripting patterns
-- 💉 **SQL Injection Detection** — Detects SQL injection indicators
-- 📊 **Risk Scoring** — 0-100 risk score with color-coded results
-- 📄 **PDF Reports** — Download detailed scan reports
-- 📈 **Scan Statistics** — Track your scanning history
-- 📱 **Mobile Friendly** — Works on all devices
+### 🔍 Vulnerability Detection
+- SQL Injection Detection
+- XSS (Cross-Site Scripting) Detection
+- Command Injection Detection
+- Directory Traversal Detection
+- LFI/RFI Detection
+- Open Redirect Detection
+- Security Header Analysis
+- Sensitive Data Exposure Detection
+
+### 🌐 Target Discovery
+- Full Website Crawler
+- Form & Parameter Detection
+- JavaScript Endpoint Discovery
+- Subdomain Discovery
+- DNS Record Enumeration
+- Open Port Detection
+- Technology Stack Detection
+- robots.txt & sitemap.xml Parsing
+
+### 📊 Analysis & Reporting
+- AI-Powered Analysis (Google Gemini)
+- Risk Scoring (0-100)
+- Threat Severity Levels (Critical/High/Medium/Low)
+- PDF Report Export
+- 📧 Email Report Feature
+- Compare Two URLs Side by Side
+- Persistent Scan History
+- Scan Statistics Dashboard
 
 ---
 
@@ -27,27 +47,20 @@ An AI-powered web phishing and vulnerability detector built with React and Pytho
 | Frontend | React.js |
 | Backend | Python Flask |
 | AI | Google Gemini API |
+| Email | EmailJS |
 | Deployment | GitHub Pages + Render |
-| PDF Generation | ReportLab |
-
----
-
-## 🏗️ Project Structure
-```
-phishguard-ai/          ← React Frontend
-phishguard-backend/     ← Python Flask Backend
-```
+| PDF | ReportLab |
 
 ---
 
 ## ⚙️ How It Works
 
 1. User enters a URL
-2. Frontend sends it to Flask backend via API
-3. Backend checks HTTPS, domain age, page content, XSS, SQL injection
-4. Gemini AI analyses all collected data
-5. Risk score + detailed report returned to frontend
-6. User can download a PDF report
+2. Frontend sends it to Flask backend
+3. Backend runs 15+ security checks
+4. Gemini AI analyses all data
+5. Risk score + severity returned
+6. User can download PDF or email report
 
 ---
 
@@ -55,3 +68,10 @@ phishguard-backend/     ← Python Flask Backend
 
 **Osho** — B.Tech 3rd Year  
 Crafted with 💙 using React + Python
+```
+
+Save **Ctrl+S** then:
+```
+git add .
+git commit -m "Updated README with all features"
+git push
